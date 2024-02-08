@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Meeting" ALTER COLUMN "code" SET DATA TYPE TEXT;
