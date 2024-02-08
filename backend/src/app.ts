@@ -10,6 +10,7 @@ import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin,authenticateUser,authenicatedRequest } from './middleware/authenticate';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import cors from'cors';
 
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +18,7 @@ const wss: WebSocketServer = new WebSocket.Server({ server });
 const prisma = new PrismaClient();
 
 app.use(express.json());
+app.use(cors());
 
 app.post('/user/signup',async(req:Request,res:Response)=>{
     const{email,name,password}=req.body;
@@ -67,7 +69,7 @@ app.post('/user/signin',async(req:Request,res:Response)=>{
       }
       const passwordMatch = await bcrypt.compare(password, user.hashedPassword || '');
       if (passwordMatch) {
-        const token = jwt.sign( email , process.env.JWT_SECRET || '', { expiresIn: '1h' });
+        const token = jwt.sign( email , process.env.JWT_SECRET || '');
         res.json({ message: 'Signin successful', token });
       } else {
         res.status(401).json({ message: 'Invalid email or password' });
@@ -86,7 +88,7 @@ app.post('/admin/signin',async(req:Request,res:Response)=>{
       }
       const passwordMatch = await bcrypt.compare(password, admin.hashedPassword || '');
       if (passwordMatch) {
-        const token = jwt.sign( email , process.env.JWT_SECRET || '', { expiresIn: '1h' });
+        const token = jwt.sign( email , process.env.JWT_SECRET || '');
         res.json({ message: 'Signin successful', token });
       } else {
         res.status(401).json({ message: 'Invalid email or password' });
@@ -100,16 +102,19 @@ app.post('/admin/signin',async(req:Request,res:Response)=>{
 app.post('/admin/create-meeting', authenticateAdmin, async (req: authenicatedRequest, res: Response) => {
     const  admin  = req.admin;
     const adminId=admin?.id;
+    const {topic,description}=req.body;
     const code = Math.floor(Math.random() * 10000).toString();
 
     try {
         const meeting = await prisma.meeting.create({
             data: {
+                topic,
+                description,
                 code: code,
                 admin: { connect: { id: adminId } },
             },
         });
-        res.json({ type: 'meeting-created', meeting });
+        res.json({ type: 'meeting-created', code:meeting.code });
     } catch (error) {
         console.error('Error creating meeting:', error);
         res.status(500).json({ type: 'error', message: 'Failed to create meeting' });
@@ -133,6 +138,11 @@ try {
   } catch (error) {
     console.error('Error handling join message:', error);
   }
+})
+
+app.get('/user',authenticateUser,(req:authenicatedRequest,res:Response)=>{
+const userId=req.user?.id;
+res.json({userId});
 })
 
 wss.on('connection', (ws) => {
@@ -219,7 +229,7 @@ const handleDisconnect = (ws: WebSocket) => {
 };
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

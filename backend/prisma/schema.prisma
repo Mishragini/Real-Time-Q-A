@@ -25,7 +25,7 @@ model User {
   name           String?
   messages       Message[]
   meeting        Meeting? @relation(fields: [meetingId],references: [id])
-  meetingId      Int
+  meetingId      Int?
   hashedPassword String
 }
 
@@ -38,9 +38,11 @@ model Message {
 }
 
 model Meeting{
-  id       Int      @id @default(autoincrement())
-  code     String   @unique
-  users    User[]   
-  admin    Admin   @relation(fields: [adminId],references: [id])
-  adminId  Int 
+  id          Int      @id @default(autoincrement())
+  topic       String
+  description String?
+  code        String   @unique
+  users       User[]   
+  admin       Admin   @relation(fields: [adminId],references: [id])
+  adminId     Int 
 }
