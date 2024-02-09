@@ -33,7 +33,6 @@ export const authenticateUser = async (req: authenicatedRequest, res: express.Re
     res: express.Response,
     next: express.NextFunction
   ) => {
-    console.log('inside authenticateAdmin');
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
       return res.status(401).json({ message: 'Unauthorized' });

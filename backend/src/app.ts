@@ -132,6 +132,7 @@ try {
         where: { id: userId },
         data: { meeting: { connect: { code: roomCode } } },
       });
+      res.json({message:'meeting joined!'});
     } else {
       res.json({ type: 'error', message: 'Invalid room code' });
     }
@@ -142,91 +143,54 @@ try {
 
 app.get('/user',authenticateUser,(req:authenicatedRequest,res:Response)=>{
 const userId=req.user?.id;
-res.json({userId});
+const name=req.user?.name
+res.json({userId,name});
 })
 
 wss.on('connection', (ws) => {
-    try {
-        ws.on('message', async (data) => {
-            try {
-                const message = JSON.parse(data.toString());
-                if (!message || !message.type) {
-                    console.error('Invalid message format:', message);
-                    return;
-                }
+  ws.on('message', async (data) => {
+    const message = data.toString();
 
-                if (message.type === 'upvote') {
-                    await handleUpvoteMessage(ws, message);
-                } else if (message.type === 'sendMessage') {
-                    await handleSendMessage(ws, message);
-                } else {
-                    console.error('Unsupported message type:', message.type);
-                }
-            } catch (error) {
-                console.error('Error parsing message:', error);
-            }
+    if (message.startsWith('upvote:')) {
+      try {
+        const messageId = parseInt(message.split(':')[1]);
+        // Find the message in Db and update the upvotes
+        
+        const updatedMessage = await prisma.message.update({ where: { id: messageId }, data: { upvotes: { increment: 1 } } });
+        
+
+        // Broadcast the updated upvote count and message details to all clients
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'upvote',
+              messageId: messageId,
+              upvotes: updatedMessage.upvotes,
+            }));
+          }
         });
+      } catch (error:any) {
+        console.error('Error updating upvotes:', error.message);
+      }
+    } else {
+      // Save the message to MongoDB
+      const messageContent=message.split(' ')[0];
+      const userId=parseInt(message.split(' ')[1]);
+      const newMessage = await prisma.message.create({data:{content:messageContent,authorId:userId}});
 
-        ws.on('close', () => {
-            handleDisconnect(ws);
-        });
-    } catch (error) {
-        console.error('Error handling WebSocket connection:', error);
-    }
-});
-
-const handleUpvoteMessage = async (ws: WebSocket, message: any) => {
-  const { messageId, userId } = message;
-  try {
-    const existingMessage = await prisma.message.findUnique({ where: { id: messageId } });
-    if (existingMessage && existingMessage.authorId !== userId) {
-      const updatedMessage=await prisma.message.update({
-        where: { id: messageId },
-        data: {
-          upvotes: existingMessage.upvotes + 1,
-        },
-      });
+      // Broadcast the message details to all clients
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
-            type: 'upvote',
-            messageId: messageId,
-            upvotes: updatedMessage.upvotes,
+            type: 'message',
+            message: newMessage,
           }));
         }
       });
     }
-  } catch (error) {
-    console.error('Error handling upvote message:', error);
-  }
-};
+  });
+});
 
-const handleSendMessage= async(ws:WebSocket,message:any)=>{
-const {content,userId}=message;
-try {
-    const createdMessage = await prisma.message.create({
-      data: {
-        content,
-        author: { connect: { id: userId } }
-      }
-    });
-    wss.clients.forEach((client) => {
-        if ( client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: 'message',
-            message: createdMessage,
-          }));
-        }
-      });
-    console.log('Message created:', createdMessage);
-  } catch (error) {
-    console.error('Error creating message:', error);
-  }
-  
-}
-const handleDisconnect = (ws: WebSocket) => {
-  // Clean up if needed
-};
 
 // Start the server
 const PORT = process.env.PORT || 3001;

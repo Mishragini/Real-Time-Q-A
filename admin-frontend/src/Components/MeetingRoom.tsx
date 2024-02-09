@@ -1,43 +1,81 @@
 import { useEffect, useState } from 'react';
-import { w3cwebsocket as WebSocket } from 'websocket';
+
 
 interface Message {
   id: string;
-  content: string;
+  message: string;
   upvotes: number;
-  type:String
 }
 
 export default function MeetingRoom() {
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3000'); 
+  const showMessage = (data: any) => {
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      {
+        id: data.message.id,
+        message: data.message.content,
+        upvotes: data.message.upvotes,
+      },
+    ]);
+  };
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data.toString()) as Message;
-      if (message&&message.type === 'message') {
-        setMessages((prevMessages) => [...prevMessages, message]);
+  const updateUpvote = (data: any) => {
+
+    setMessages((prevMessages) =>
+      prevMessages.map((msg) =>
+        msg.id === data.messageId
+          ? { ...msg, upvotes: data.upvotes }
+          : msg
+      )
+    );
+  };
+
+  const initWebSocket = () => {
+    let newWs = new WebSocket('ws://localhost:3000');
+    newWs.onopen = () => {
+      console.log('WebSocket connection opened!');
+    };
+    newWs.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'upvote') {
+        updateUpvote(data);
+      } else if (data.type === 'message') {
+        showMessage(data);
       }
     };
 
+    setWs(newWs);
+
     return () => {
-      ws.close();
+      newWs.onerror = newWs.onopen = newWs.onclose = null;
     };
+  };
+
+  useEffect(() => {
+    initWebSocket();
   }, []);
 
-  const sortedMessages = messages.sort((a, b) => b.upvotes - a.upvotes);
+   messages.sort((a, b) => b.upvotes - a.upvotes);
 
   return (
     <div>
       <h1>Admin Meeting Room</h1>
-      <ul>
-        {sortedMessages.map((message) => (
-          <li key={message.id}>
-            {message.content} - Upvotes: {message.upvotes}
-          </li>
+      <div className="max-h-400  mb-4" id="messages">
+        {messages.map((msg) => (
+          <div key={msg.id} className="mb-2">
+            <div>{msg.message}</div>
+            <button
+             
+              className="bg-blue-500 text-white px-2 py-1 rounded"
+            >
+              Upvote: {msg.upvotes}
+            </button>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 };

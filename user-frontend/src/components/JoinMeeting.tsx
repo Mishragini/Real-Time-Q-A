@@ -25,7 +25,6 @@ return(
               'Authorization': window.localStorage.getItem('Authorization'),
               'Content-Type': 'application/json',  
             },});
-          window.localStorage.setItem("Authorization","Bearer "+response.data.token)
           navigate("/meeting-room");
         }}
       >
