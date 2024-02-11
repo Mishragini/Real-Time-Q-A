@@ -7,7 +7,7 @@ export default function CreateMeeting() {
   const [description, setDescription] = useState("");
   const [meetingCode, setMeetingCode] = useState('');
   const [showMeetingCode, setShowMeetingCode] = useState(false);
-
+  const [meetingId,setMeetingId]=useState(0);
   const navigate = useNavigate();
 
   return (
@@ -56,6 +56,7 @@ export default function CreateMeeting() {
           });
           setMeetingCode(response.data.code);
           setShowMeetingCode(true);
+          setMeetingId(response.data.meetingId);
         }}
       >
         Create Meeting
@@ -67,7 +68,7 @@ export default function CreateMeeting() {
           <button
             className="w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-400 focus:outline-none focus:shadow-outline-gray"
             onClick={() => {
-              navigate("/meeting-room");
+              navigate(`/meeting-room/${meetingId}`);
             }}
           >
             Join Meeting

@@ -14,8 +14,9 @@ export const authenticateUser = async (req: authenicatedRequest, res: express.Re
     }
   
     try {
-      const decoded = jwt.verify(token as string, process.env.JWT_SECRET || '');
-      const user = await prisma.user.findUnique({ where: { email:decoded as string } });
+      const decoded = jwt.verify(token as string, process.env.JWT_SECRET || '')as{email:string};
+      const email=decoded.email;
+      const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
@@ -39,9 +40,9 @@ export const authenticateUser = async (req: authenicatedRequest, res: express.Re
     }
   
     try {
-      const decoded = jwt.verify(token as string, process.env.JWT_SECRET || '');
-  
-      const admin = await prisma.admin.findUnique({ where: { email: decoded as string } });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as {email:string};
+      const email=decoded.email;
+      const admin = await prisma.admin.findUnique({ where: { email } });
   
   
       if (!admin) {

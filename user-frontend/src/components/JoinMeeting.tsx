@@ -7,11 +7,13 @@ const[roomCode,setCode]=useState('');
 const navigate=useNavigate();
 return(
 <div>
-        <h3 className="text-sm font-semibold">Enter your Meeting Code.</h3>
+<div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-md shadow-md ">
+      <div className="flex flex-col items-center">
+        <h3 className="text-md font-semibold mb-2">Enter your Meeting Code.</h3>
         <input onChange={(e)=>{
           setCode(e.target.value)
         }}
-          className="w-full p-2 border rounded-md focus:outline-none focus:border-blue-500"
+          className="w-full p-2 border rounded-md focus:outline-none focus:border-blue-500 mb-4"
           type="text"
         />
           <button
@@ -25,11 +27,14 @@ return(
               'Authorization': window.localStorage.getItem('Authorization'),
               'Content-Type': 'application/json',  
             },});
-          navigate("/meeting-room");
+            
+          navigate(`/meeting-room/${response.data.meetingId}`);
         }}
       >
         Join Meeting
       </button>
+      </div>
+      </div>
       </div>
 )
 }

@@ -1,27 +1,31 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams } from 'react-router-dom';
 
 interface Message {
   id: number;
   message: string;
   upvotes: number;
+  author:string
 }
 
 export default function MeetingRoom () {
+  const{meetingId='0'}=useParams();
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [messageboxValue, setMessageboxValue] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const[userId,setUserId]=useState(0);
   const [upvotedMessages, setUpvotedMessages] = useState<string[]>([]);
-  const[name,setName]=useState('');
 
   const showMessage = (data: any) => {
+    if(parseInt(meetingId)!==data.message.meetingId) return ;
     setMessages((prevMessages) => [
       ...prevMessages,
       {
         id: data.message.id,
         message: data.message.content,
         upvotes: data.message.upvotes,
+        author:data.author
       },
     ]);
     setMessageboxValue('');
@@ -65,7 +69,7 @@ export default function MeetingRoom () {
       return;
     }
 
-    const message = `${messageboxValue} ${userId}`;
+    const message = `${messageboxValue}:${userId}:${meetingId}`;
     
     ws.send(message);
   };
@@ -92,15 +96,18 @@ export default function MeetingRoom () {
         });
         // Handle the response data as needed
         setUserId(response.data.userId);
-        setName(response.data.name);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
+    
 
     fetchData();
    initWebSocket();
   }, []); 
+  useEffect(() => {
+  }, [messages]);
+
 
   return (
     <div className="container mx-auto p-4">
@@ -108,6 +115,7 @@ export default function MeetingRoom () {
       <div className="max-h-400  mb-4" id="messages">
         {messages.map((msg) => (
           <div key={msg.id} className="mb-2">
+            <div>{msg.author}</div>
             <div>{msg.message}</div>
             <button
               onClick={() => {if(!upvotedMessages.includes(msg.id.toString()))
@@ -120,22 +128,27 @@ export default function MeetingRoom () {
           </div>
         ))}
       </div>
-      <input
-        type="text"
-        id="messagebox"
-        placeholder="Type your message here"
-        className="block w-full mb-2 p-2"
-        value={messageboxValue}
-        onChange={(e) => setMessageboxValue(e.target.value)}
-      />
-      <button
-        id="send"
-        title="Send Message!"
-        className="w-full bg-green-500 text-white px-2 py-1 rounded"
-        onClick={sendMessage}
-      >
-        Send Message
-      </button>
+      <div className="min-h-screen flex flex-col justify-end">
+      <div className='flex justify-between'>
+        <input
+          type="text"
+          id="messagebox"
+          placeholder="Type your message here"
+          className="w-full p-2 border rounded-md focus:outline-none focus:border-green-500 mr-2"
+          value={messageboxValue}
+          onChange={(e) => setMessageboxValue(e.target.value)}
+        />
+        <button
+          id="send"
+          title="Send Message!"
+          className=" h-10 bg-green-500 text-white px-2 py-2 rounded"
+          onClick={sendMessage}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+      
     </div>
   );
 };

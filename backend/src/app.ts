@@ -6,7 +6,7 @@ import express ,{Request,Response} from 'express';
 import http from 'http';
 import WebSocket from 'ws'; 
 import { Server as WebSocketServer } from 'ws'; 
-import { PrismaClient } from '@prisma/client';
+import { Prisma,PrismaClient } from '@prisma/client';
 import { authenticateAdmin,authenticateUser,authenicatedRequest } from './middleware/authenticate';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -16,9 +16,11 @@ const app = express();
 const server = http.createServer(app);
 const wss: WebSocketServer = new WebSocket.Server({ server }); 
 const prisma = new PrismaClient();
-
+const secretKey=process.env.JWT_SECRET||'';
 app.use(express.json());
 app.use(cors());
+
+const connectedClients = new Set();
 
 app.post('/user/signup',async(req:Request,res:Response)=>{
     const{email,name,password}=req.body;
@@ -36,7 +38,7 @@ app.post('/user/signup',async(req:Request,res:Response)=>{
         }
     })
     
-    const token =jwt.sign(email,process.env.JWT_SECRET||'');
+    const token =jwt.sign({email},secretKey,{expiresIn:'1h'});
     res.json({message:'User created successfully',token})
 })
 
@@ -56,7 +58,7 @@ app.post('/admin/signup',async(req:Request,res:Response)=>{
         }
     })
     
-    const token =jwt.sign(email,process.env.JWT_SECRET||'');
+    const token =jwt.sign({email},secretKey,{expiresIn:'1h'});
     res.json({message:'Admin created successfully',token})
 })
 
@@ -69,7 +71,7 @@ app.post('/user/signin',async(req:Request,res:Response)=>{
       }
       const passwordMatch = await bcrypt.compare(password, user.hashedPassword || '');
       if (passwordMatch) {
-        const token = jwt.sign( email , process.env.JWT_SECRET || '');
+        const token = jwt.sign( {email} , secretKey,{expiresIn:'1h'});
         res.json({ message: 'Signin successful', token });
       } else {
         res.status(401).json({ message: 'Invalid email or password' });
@@ -88,7 +90,7 @@ app.post('/admin/signin',async(req:Request,res:Response)=>{
       }
       const passwordMatch = await bcrypt.compare(password, admin.hashedPassword || '');
       if (passwordMatch) {
-        const token = jwt.sign( email , process.env.JWT_SECRET || '');
+        const token = jwt.sign( {email} , secretKey,{expiresIn:'1h'});
         res.json({ message: 'Signin successful', token });
       } else {
         res.status(401).json({ message: 'Invalid email or password' });
@@ -114,7 +116,7 @@ app.post('/admin/create-meeting', authenticateAdmin, async (req: authenicatedReq
                 admin: { connect: { id: adminId } },
             },
         });
-        res.json({ type: 'meeting-created', code:meeting.code });
+        res.json({ type: 'meeting-created', code:meeting.code,meetingId:meeting.id });
     } catch (error) {
         console.error('Error creating meeting:', error);
         res.status(500).json({ type: 'error', message: 'Failed to create meeting' });
@@ -132,7 +134,7 @@ try {
         where: { id: userId },
         data: { meeting: { connect: { code: roomCode } } },
       });
-      res.json({message:'meeting joined!'});
+      res.json({message:'meeting joined!', meetingId:meeting.id});
     } else {
       res.json({ type: 'error', message: 'Invalid room code' });
     }
@@ -148,6 +150,7 @@ res.json({userId,name});
 })
 
 wss.on('connection', (ws) => {
+  connectedClients.add(ws);
   ws.on('message', async (data) => {
     const message = data.toString();
 
@@ -174,23 +177,51 @@ wss.on('connection', (ws) => {
       }
     } else {
       // Save the message to MongoDB
-      const messageContent=message.split(' ')[0];
-      const userId=parseInt(message.split(' ')[1]);
-      const newMessage = await prisma.message.create({data:{content:messageContent,authorId:userId}});
-
-      // Broadcast the message details to all clients
+      const messageContent = message.split(':')[0];
+      const userId = parseInt(message.split(':')[1]);
+      const meetingId = parseInt(message.split(':')[2]);
+      
+      const messageCreateInput: Prisma.MessageCreateInput = {
+        content: messageContent,
+        author:{connect:{id:userId}},
+        meeting: { connect: { id: meetingId } },
+      };
+      
+      const newMessage = await prisma.message.create({ data: messageCreateInput });
+      const author = await prisma.user.findFirst({ where: { id: userId } });
+      
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: 'message',
             message: newMessage,
+            author:author?.name,
           }));
         }
       });
     }
   });
-});
+  ws.on('close',async()=>{
+    connectedClients.delete(ws); // Remove the client from the set when they disconnect
 
+    if (connectedClients.size === 0) {
+      // All clients have left, delete data from the database
+      clearDatabaseData();
+    }
+  });
+  
+});
+async function clearDatabaseData() {
+  try {
+    // Replace 'YourModel' with the actual name of your Prisma model
+    const deletedMessage = await prisma.message.deleteMany();
+    console.log(`Deleted ${deletedMessage.count} rows from the messages table`);
+  } catch (error) {
+    console.error('Error clearing data:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 // Start the server
 const PORT = process.env.PORT || 3001;

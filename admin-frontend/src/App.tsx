@@ -15,7 +15,7 @@ function App() {
         <Route path='/signup' element={<Signup />}></Route>
         <Route path='/signin' element={<Signin />}></Route>
         <Route path='/create-meeting' element={<CreateMeeting />}></Route>
-        <Route path='/meeting-room' element={<MeetingRoom/>}></Route>
+        <Route path='/meeting-room/:meetingId' element={<MeetingRoom/>}></Route>
       </Routes>
     </BrowserRouter>
   )

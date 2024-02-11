@@ -21,7 +21,7 @@ model Admin {
 
 model User {
   id              Int     @id @default(autoincrement())
-  email          String  @unique
+  email          String   @unique
   name           String?
   messages       Message[]
   meeting        Meeting? @relation(fields: [meetingId],references: [id])
@@ -35,6 +35,8 @@ model Message {
   upvotes   Int     @default(0)
   author    User    @relation(fields: [authorId], references: [id])
   authorId  Int
+  meeting   Meeting? @relation(fields: [meetingId],references: [id])
+  meetingId Int?
 }
 
 model Meeting{
@@ -43,6 +45,7 @@ model Meeting{
   description String?
   code        String   @unique
   users       User[]   
+  messages    Message[]
   admin       Admin   @relation(fields: [adminId],references: [id])
   adminId     Int 
 }
