@@ -27,7 +27,6 @@ return(
               'Authorization': window.localStorage.getItem('Authorization'),
               'Content-Type': 'application/json',  
             },});
-            
           navigate(`/meeting-room/${response.data.meetingId}`);
         }}
       >

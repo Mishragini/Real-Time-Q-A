@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-
+import axios from 'axios';
 
 interface Message {
   id: string;
-  message: string;
+  content: string;
   upvotes: number;
   author:string
 }
@@ -21,7 +21,7 @@ export default function MeetingRoom() {
       ...prevMessages,
       {
         id: data.message.id,
-        message: data.message.content,
+        content: data.message.content,
         upvotes: data.message.upvotes,
         author:data.author
       },
@@ -49,7 +49,6 @@ export default function MeetingRoom() {
       if (data.type === 'upvote') {
         updateUpvote(data);
       } else if (data.type === 'message') {
-        console.log(data);
         showMessage(data);
       }
     };
@@ -62,11 +61,22 @@ export default function MeetingRoom() {
   };
 
   useEffect(() => {
+    const fetchMessages=async()=>{
+      try{
+        const response=await axios.get(`http://localhost:3000/messages/${meetingId}`);
+        console.log(response);
+        const messages=response.data;
+        setMessages(messages);
+      }
+      catch(error){
+        console.error('Error fetching data:', error);
+  
+      }
+     }
     initWebSocket();
-   
+   fetchMessages();
   }, []);
-  useEffect(() => {
-  }, [messages]);
+ 
 
 
    messages.sort((a, b) => b.upvotes - a.upvotes);
@@ -79,7 +89,7 @@ export default function MeetingRoom() {
           <div key={msg.id} className="mb-2">
             
             <div>{msg.author}</div>
-            <div>{msg.message}</div>
+            <div>{msg.content}</div>
             <button
              
               className="bg-blue-500 text-white px-2 py-1 rounded"

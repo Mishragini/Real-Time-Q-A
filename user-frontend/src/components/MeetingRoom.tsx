@@ -4,9 +4,9 @@ import { useParams } from 'react-router-dom';
 
 interface Message {
   id: number;
-  message: string;
+  content: string;
   upvotes: number;
-  author:string
+  author?:string
 }
 
 export default function MeetingRoom () {
@@ -23,7 +23,7 @@ export default function MeetingRoom () {
       ...prevMessages,
       {
         id: data.message.id,
-        message: data.message.content,
+        content: data.message.content,
         upvotes: data.message.upvotes,
         author:data.author
       },
@@ -70,7 +70,7 @@ export default function MeetingRoom () {
     }
 
     const message = `${messageboxValue}:${userId}:${meetingId}`;
-    
+    console.log(meetingId);
     ws.send(message);
   };
 
@@ -87,6 +87,7 @@ export default function MeetingRoom () {
   };
 
   useEffect(() => {
+
     const fetchData = async () => {
       try {
         const response = await axios.get('http://localhost:3000/user',{
@@ -100,12 +101,28 @@ export default function MeetingRoom () {
         console.error('Error fetching data:', error);
       }
     };
+    const fetchMessages=async()=>{
+      try{
+        const response=await axios.get(`http://localhost:3000/messages/${meetingId}`);
+        console.log(response);
+        const messages=response.data;
+        setMessages(messages);
+      }
+      catch(error){
+        console.error('Error fetching data:', error);
+  
+      }
+     }
     
-
     fetchData();
    initWebSocket();
+
+    fetchMessages();
+
   }, []); 
   useEffect(() => {
+   
+  
   }, [messages]);
 
 
@@ -116,7 +133,7 @@ export default function MeetingRoom () {
         {messages.map((msg) => (
           <div key={msg.id} className="mb-2">
             <div>{msg.author}</div>
-            <div>{msg.message}</div>
+            <div>{msg.content}</div>
             <button
               onClick={() => {if(!upvotedMessages.includes(msg.id.toString()))
                 {upvoteMessage(msg.id)

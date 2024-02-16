@@ -136,7 +136,7 @@ try {
       });
       res.json({message:'meeting joined!', meetingId:meeting.id});
     } else {
-      res.json({ type: 'error', message: 'Invalid room code' });
+      return res.json({ type: 'error', message: 'Invalid room code' });
     }
   } catch (error) {
     console.error('Error handling join message:', error);
@@ -147,6 +147,30 @@ app.get('/user',authenticateUser,(req:authenicatedRequest,res:Response)=>{
 const userId=req.user?.id;
 const name=req.user?.name
 res.json({userId,name});
+})
+
+app.get('/messages/:meetingId',async(req,res)=>{
+  const meetingId=parseInt(req.params.meetingId);
+  
+  const messages = await prisma.message.findMany({
+    where: {
+      meetingId
+    }
+  });
+  
+  const updatedMessages = await Promise.all(
+    messages.map(async (message) => {
+      const author = await prisma.user.findUnique({
+        where: { id: message.authorId }
+      });
+      const name=author?.name;
+      return { ...message, author:name};
+    })
+  );
+  
+  if(!messages) return res.json({"message":"No messages yet"});
+  console.log(updatedMessages)
+  res.send(updatedMessages);
 })
 
 wss.on('connection', (ws) => {
@@ -176,7 +200,6 @@ wss.on('connection', (ws) => {
         console.error('Error updating upvotes:', error.message);
       }
     } else {
-      // Save the message to MongoDB
       const messageContent = message.split(':')[0];
       const userId = parseInt(message.split(':')[1]);
       const meetingId = parseInt(message.split(':')[2]);
@@ -204,24 +227,24 @@ wss.on('connection', (ws) => {
   ws.on('close',async()=>{
     connectedClients.delete(ws); // Remove the client from the set when they disconnect
 
-    if (connectedClients.size === 0) {
-      // All clients have left, delete data from the database
-      clearDatabaseData();
-    }
+    // if (connectedClients.size === 0) {
+    //   // All clients have left, delete data from the database
+    //   clearDatabaseData();
+    // }
   });
   
 });
-async function clearDatabaseData() {
-  try {
-    // Replace 'YourModel' with the actual name of your Prisma model
-    const deletedMessage = await prisma.message.deleteMany();
-    console.log(`Deleted ${deletedMessage.count} rows from the messages table`);
-  } catch (error) {
-    console.error('Error clearing data:', error);
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+// async function clearDatabaseData() {
+//   try {
+//     // Replace 'YourModel' with the actual name of your Prisma model
+//     const deletedMessage = await prisma.message.deleteMany();
+//     console.log(`Deleted ${deletedMessage.count} rows from the messages table`);
+//   } catch (error) {
+//     console.error('Error clearing data:', error);
+//   } finally {
+//     await prisma.$disconnect();
+//   }
+// }
 
 // Start the server
 const PORT = process.env.PORT || 3001;
