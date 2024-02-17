@@ -35,6 +35,7 @@ export const authenticateUser = async (req: authenicatedRequest, res: express.Re
     next: express.NextFunction
   ) => {
     const token = req.headers['authorization']?.split(' ')[1];
+    console.log(token);
     if (!token) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -46,14 +47,14 @@ export const authenticateUser = async (req: authenicatedRequest, res: express.Re
   
   
       if (!admin) {
-        return res.status(401).json({ message: 'Unauthorized' });
+        return res.status(404).json({ message: 'Unauthorized' });
       }
   
       req.admin = admin;
       next();
     } catch (error) {
       console.error('Error authenticating user:', error);
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
   };
   

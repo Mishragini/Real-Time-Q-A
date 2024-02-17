@@ -127,12 +127,12 @@ export default function MeetingRoom () {
 
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 ">
       <h1 className="text-3xl font-bold mb-4">Real Time Messaging.</h1>
-      <div className="max-h-400  mb-4" id="messages">
+      <div className="max-h-400  mb-4 ml-4" id="messages">
         {messages.map((msg) => (
           <div key={msg.id} className="mb-2">
-            <div>{msg.author}</div>
+            <div  className='text-lg font-bold '>{msg.author}</div>
             <div>{msg.content}</div>
             <button
               onClick={() => {if(!upvotedMessages.includes(msg.id.toString()))

@@ -6,9 +6,9 @@ export default function Landing() {
   return (
     <div className="flex h-screen">
       {/* Left half */}
-      <div className="flex-1 bg-red-400 flex items-center justify-center">
+      <div className="flex-1 bg-green-400 flex items-center justify-center">
         <p className="text-white font-bold text-3xl text-center">
-          Welcome to Admin Dashboard of Interacto.
+          Welcome to User Dashboard of Interacto.
         </p>
       </div>
 

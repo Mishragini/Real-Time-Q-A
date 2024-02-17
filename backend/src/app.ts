@@ -173,6 +173,22 @@ app.get('/messages/:meetingId',async(req,res)=>{
   res.send(updatedMessages);
 })
 
+app.put('/messages/:messageId',authenticateAdmin,async(req,res)=>{
+  const messageId=parseInt(req.params.messageId);
+  try {
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: { answered: true },
+    });
+  
+    console.log('Message updated successfully:', updatedMessage);
+  } catch (error) {
+    console.error('Error updating message:', error);
+  
+  }
+
+})
+
 wss.on('connection', (ws) => {
   connectedClients.add(ws);
   ws.on('message', async (data) => {

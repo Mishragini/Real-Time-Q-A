@@ -37,6 +37,7 @@ model Message {
   authorId  Int
   meeting   Meeting? @relation(fields: [meetingId],references: [id])
   meetingId Int?
+  answered  Boolean  @default(false)
 }
 
 model Meeting{
