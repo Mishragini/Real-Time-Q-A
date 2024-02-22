@@ -169,7 +169,6 @@ app.get('/messages/:meetingId',async(req,res)=>{
   );
   
   if(!messages) return res.json({"message":"No messages yet"});
-  console.log(updatedMessages)
   res.send(updatedMessages);
 })
 
@@ -181,10 +180,10 @@ app.put('/messages/:messageId',authenticateAdmin,async(req,res)=>{
       data: { answered: true },
     });
   
-    console.log('Message updated successfully:', updatedMessage);
+    return res.json({updatedMessage})
   } catch (error) {
     console.error('Error updating message:', error);
-  
+    return;
   }
 
 })
@@ -243,24 +242,24 @@ wss.on('connection', (ws) => {
   ws.on('close',async()=>{
     connectedClients.delete(ws); // Remove the client from the set when they disconnect
 
-    // if (connectedClients.size === 0) {
-    //   // All clients have left, delete data from the database
-    //   clearDatabaseData();
-    // }
+    if (connectedClients.size === 0) {
+      // All clients have left, delete data from the database
+      clearDatabaseData();
+    }
   });
   
 });
-// async function clearDatabaseData() {
-//   try {
-//     // Replace 'YourModel' with the actual name of your Prisma model
-//     const deletedMessage = await prisma.message.deleteMany();
-//     console.log(`Deleted ${deletedMessage.count} rows from the messages table`);
-//   } catch (error) {
-//     console.error('Error clearing data:', error);
-//   } finally {
-//     await prisma.$disconnect();
-//   }
-// }
+async function clearDatabaseData() {
+  try {
+    // Replace 'YourModel' with the actual name of your Prisma model
+    const deletedMessage = await prisma.message.deleteMany();
+    console.log(`Deleted ${deletedMessage.count} rows from the messages table`);
+  } catch (error) {
+    console.error('Error clearing data:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 // Start the server
 const PORT = process.env.PORT || 3001;

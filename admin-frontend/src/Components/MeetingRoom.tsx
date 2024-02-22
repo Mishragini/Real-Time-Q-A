@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 
 interface Message {
-  id: string;
+  id: number;
   content: string;
   upvotes: number;
   author:string;
@@ -21,7 +21,7 @@ export default function MeetingRoom() {
     setMessages((prevMessages) => [
       ...prevMessages,
       {
-        id: data.message.id,
+        id: parseInt(data.message.id),
         content: data.message.content,
         upvotes: data.message.upvotes,
         author:data.author,
@@ -79,7 +79,8 @@ export default function MeetingRoom() {
    fetchMessages();
   }, []);
  
-  const updateAnswered = async (messageId: string) => {
+  const updateAnswered = async (messageId: number) => {
+    console.log(typeof(messageId));
     try {
       // Send a request to mark the message as answered on the server
       await axios.put(`http://localhost:3000/messages/${messageId}`, {}, {
@@ -89,7 +90,9 @@ export default function MeetingRoom() {
       });
   
       setMessages((prevMessages) =>
-        prevMessages.filter((msg) => msg.id !== messageId)
+        prevMessages.filter((msg) =>{ 
+          console.log(typeof(msg.id));
+          return (msg.id !== messageId)})
       );
   
       console.log('Message marked as answered successfully');
@@ -103,7 +106,7 @@ export default function MeetingRoom() {
    return (
     <div className='container'>
       <h1 className='text-3xl font-bold mb-4 ml-2'>Admin Meeting Room</h1>
-      <div className="max-h-400 mb-4 bg-white" id="messages">
+      <div className="max-h-400 mb-4 " id="messages">
         {messages.length === 0 ? (
           <p>No messages yet. Waiting for messages...</p>
         ) : (
