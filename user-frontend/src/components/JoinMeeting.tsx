@@ -27,6 +27,10 @@ return(
               'Authorization': window.localStorage.getItem('Authorization'),
               'Content-Type': 'application/json',  
             },});
+            if(!response.data.meetingId) {
+              alert("Please enter a valid room code !");
+              return;
+            }
           navigate(`/meeting-room/${response.data.meetingId}`);
         }}
       >
